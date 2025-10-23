@@ -18,10 +18,10 @@ store.on("error", function (error) {
 });
 
 const sessionParms = {
-  secret: process.env.SESSION_SECRET,
-  resave: true,
-  saveUninitialized: true,
-  store: store,
+  secret: process.env.SESSION_SECRET, // ключ для подписи cookie
+  resave: true, // всегда пересохранять сессию
+  saveUninitialized: true, // сохранять даже пустую
+  store: store, // сохраняем в MongoDB
   cookie: { secure: false, sameSite: "strict" }, // верно для локальной разработки (HTTP).
 };
 
@@ -30,8 +30,9 @@ if (app.get("env") === "production") {
   sessionParms.cookie.secure = true; // serve secure cookies
 }
 
+// Подключение middleware сессий
 app.use(session(sessionParms));
-
+app.use(require("connect-flash")());
 // // Настройка сессий, Фактически это опции для управления тем, когда сессия записывается на сервер.
 // app.use(
 //   session({
@@ -54,10 +55,19 @@ app.get("/secretWord", (req, res) => {
   if (!req.session.secretWord) {
     req.session.secretWord = "syzygy";
   }
+  res.locals.info = req.flash("info");
+  res.locals.errors = req.flash("error");
   res.render("secretWord", { secretWord: req.session.secretWord });
 });
+
 app.post("/secretWord", (req, res) => {
+  if (req.body.secretWord.toUpperCase()[0] == "P"){
+    req.flash("error", "That word won't work!");
+    req.flash("error", "You can't use words that start with p.");
+  } else {
   req.session.secretWord = req.body.secretWord;
+  req.flash('info', "The secret word was changed.");
+}
   res.redirect("/secretWord");
 });
 
