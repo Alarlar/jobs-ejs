@@ -1,7 +1,6 @@
 // Эта директория и файл в частности отвечают за структуру данных и их обработку, Схема и действия с ними (запросы к бд, валидация)
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 
 const UserSchema = new mongoose.Schema({
   name: {
@@ -31,17 +30,17 @@ UserSchema.pre("save", async function () {
   this.password = await bcrypt.hash(this.password, salt); // hash method - looking for password and salt that we will get hasged result
 });
 
-// Schema Instance methods, Этот токен создается и хранится в локал storage browser
-UserSchema.methods.createJWT = function () {
-  // Access the document
-  return jwt.sign(
-    { userId: this._id, name: this.name },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: process.env.JWT_LIFETIME,
-    }
-  );
-};
+// // Schema Instance methods, Этот токен создается и хранится в локал storage browser
+// UserSchema.methods.createJWT = function () {
+//   // Access the document
+//   return jwt.sign(
+//     { userId: this._id, name: this.name },
+//     process.env.JWT_SECRET,
+//     {
+//       expiresIn: process.env.JWT_LIFETIME,
+//     }
+//   );
+// };
 
 // Compare hashed password
 UserSchema.methods.comparePassword = async function (canditatePassword) {
