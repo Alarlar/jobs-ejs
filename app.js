@@ -38,9 +38,21 @@ if (app.get('env') === 'production') {
 }
 
 app.use(session(sessionParams));
+const passport = require('passport');
+const passportInit = require('./passport/passportInit');
+
+passportInit();
+app.use(passport.initialize());
+app.use(passport.session());
 
 // flash
 app.use(require('connect-flash')());
+
+app.use(require('./middleware/storeLocals'));
+app.get('/', (req, res) => {
+  res.render('index');
+});
+app.use('/sessions', require('./routes/sessionRoutes'));
 
 // middleware
 app.use((req, res, next) => {
@@ -49,40 +61,35 @@ app.use((req, res, next) => {
   next();
 });
 
-// routes
-app.get('/secretWord', (req, res) => {
-  if (!req.session.secretWord) {
-    req.session.secretWord = 'syzygy';
-  }
-  res.render('secretWord', {
-    secretWord: req.session.secretWord,
-  });
-});
-
-app.post('/secretWord', (req, res) => {
-  if (req.body.secretWord.toUpperCase()[0] === 'P') {
-    req.flash('error', "That word won't work!");
-    req.flash('error', "You can't use words that start with p.");
-  } else {
-    req.session.secretWord = req.body.secretWord;
-    req.flash('info', 'The secret word was changed.');
-  }
-
-  res.redirect('/secretWord');
-});
+// secretWord
+const auth = require('./middleware/auth');
+const secretWordRouter = require('./routes/secretWord');
+app.use('/secretWord', auth, secretWordRouter);
 
 // error handlers
 app.use((req, res) => {
   res.status(404).send(`That page (${req.url}) was not found.`);
 });
 
+// 500
 app.use((err, req, res, next) => {
   console.log(err);
   res.status(500).send(err.message);
+  next();
 });
 
 const port = process.env.PORT || 3000;
 
-app.listen(port, () => {
-  console.log(`Server is listening on port ${port}...`);
-});
+(async () => {
+  try {
+    await require('./db/connect')(process.env.MONGO_URI);
+    console.log('Connected to MongoDB');
+
+    app.listen(port, () => {
+      console.log(`Server is listening on port ${port}...`);
+    });
+  } catch (err) {
+    console.error('Failed to connect to MongoDB:', err);
+    process.exit(1);
+  }
+})();
